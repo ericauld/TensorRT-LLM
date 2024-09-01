@@ -66,8 +66,9 @@ public:
     // Type Aliases
     //
     using ProblemShape = ProblemShape_;
-    // EA: Commenting out this assert bcs it causes highlighting trouble
-    static_assert(cute::rank(ProblemShape{}) == 3 || cute::rank(ProblemShape{}) == 4, "ProblemShape{} should be <M,N,K> or <M,N,K,L>");
+    // EA: Changed `or` to `||` here bcs it was causing highlighting trouble
+    static_assert(cute::rank(ProblemShape{}) == 3 || cute::rank(ProblemShape{}) == 4, 
+                            "ProblemShape{} should be <M,N,K> or <M,N,K,L>");
     // Mainloop derived types
     using CollectiveMainloop = CollectiveMainloop_;
     using TileShape = typename CollectiveMainloop::TileShape;
@@ -216,7 +217,8 @@ public:
 
         return {args.mode, problem_shape,
             CollectiveMainloop::to_underlying_arguments(args.problem_shape, args.mainloop, mainloop_workspace),
-            CollectiveEpilogue::to_underlying_arguments(args.problem_shape, args.epilogue, epilogue_workspace), hw_info,
+            CollectiveEpilogue::to_underlying_arguments(args.problem_shape, args.epilogue, epilogue_workspace), 
+            hw_info,
             TileScheduler::to_underlying_arguments(
                 problem_shape_MNKL, TileShape{}, ClusterShape{}, hw_info, args.scheduler, scheduler_workspace)};
     }
@@ -367,7 +369,8 @@ public:
         mainloop_pipeline_params.is_leader = warp_group_thread_idx == 0;
         mainloop_pipeline_params.num_consumers = NumThreadsPerWarpGroup;
         mainloop_pipeline_params.transaction_bytes = CollectiveMainloop::TmaTransactionBytes;
-        MainloopPipeline mainloop_pipeline(shared_storage.pipelines.mainloop, mainloop_pipeline_params, ClusterShape{});
+        MainloopPipeline mainloop_pipeline(shared_storage.pipelines.mainloop, 
+                                           mainloop_pipeline_params, ClusterShape{});
 
         // Epilogue Load pipeline
         using EpiLoadPipeline = typename CollectiveEpilogue::LoadPipeline;
@@ -399,7 +402,8 @@ public:
 
         typename MathWarpGroupOrderBarrier::Params params_math_wg_order_barrier;
         // DMA Load WG will not participate in these Ordered Barrier syncs
-        params_math_wg_order_barrier.group_id = canonical_warp_group_idx() - static_cast<int>(WarpGroupRole::Consumer0);
+        params_math_wg_order_barrier.group_id = canonical_warp_group_idx() - 
+            static_cast<int>(WarpGroupRole::Consumer0);
         params_math_wg_order_barrier.group_size = NumThreadsPerWarpGroup; // Number of threads / participants in a group
         MathWarpGroupOrderBarrier math_wg_order_barrier(
             shared_storage.pipelines.math_wg_order, params_math_wg_order_barrier);
@@ -529,7 +533,8 @@ public:
                     auto blk_coord = make_coord(m_coord, n_coord, _, l_coord);
 
                     epi_load_pipe_producer_state
-                        = collective_epilogue.load(epi_load_pipeline, epi_load_pipe_producer_state, problem_shape_MNKL,
+                        = collective_epilogue.load(
+                            epi_load_pipeline, epi_load_pipe_producer_state, problem_shape_MNKL,
                             blk_shape, blk_coord, tiled_mma, lane_idx, shared_storage.tensors.epilogue);
 
                     // Get next work tile
